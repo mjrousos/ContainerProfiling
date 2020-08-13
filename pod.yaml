@@ -1,0 +1,50 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: testapp
+spec:
+  # Containers must share process namespace 
+  # for sidecar profiling scenarios
+  shareProcessNamespace: true
+  volumes:
+    # The tmp directory must be shared if profiling with
+    # dotnet trace from a sidecar. This requirement will
+    # hopefully be removed in .NET 5.
+    # https://github.com/dotnet/diagnostics/issues/810
+    - name: tmp
+      emptyDir: {}
+  containers:
+    - name: testapp
+      image: mjrousos/testapp:latest
+      volumeMounts:
+        - name: tmp
+          mountPath: /tmp
+      ports:
+        - containerPort: 80
+      # These env vars are only needed if profiling with PerfCollect
+      env:
+        - name: COMPlus_PerfMapEnabled
+          value: "1"
+        - name: COMPlus_EnableEventLog
+          value: "1"
+        # This env var would only be necessary if using perfcollect
+        # from the testapp container. It isn't needed when perfcollect
+        # is run from the sidecar since the sidecar has crossgen.
+        # - name: COMPlus_ZapDisable
+        #  value: "1"
+    - name: sidecar
+      image: mjrousos/sidecar:latest
+      stdin: true
+      tty: true
+      volumeMounts:
+        - name: tmp
+          mountPath: /tmp
+      # Containers running perfcollect must be privileged
+      # (this is not necessary for dotnet trace).
+      # If PerfCollect will be run from the testapp container
+      # (as opposed to the sidecar) then this securityContext
+      # needs to be copied to that container.
+      securityContext:
+        privileged: true
+        capabilities:
+          add: ["SYS_ADMIN"]
