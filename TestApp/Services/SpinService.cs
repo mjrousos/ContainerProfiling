@@ -1,4 +1,5 @@
 ﻿using System;
+using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Hosting;
@@ -33,6 +34,7 @@ namespace AKSPerf.Services
         // method, doing the rest in the helper.   
         void RecSpin(int timeSec)
         {
+            AllocateStrings();
             if (timeSec <= 0)
                 return;
             --timeSec;
@@ -70,5 +72,13 @@ namespace AKSPerf.Services
             }
         }
 
+        void AllocateStrings()
+        {
+            var fileName = "AKSPerf.deps.json";
+            if (File.Exists(fileName))
+            {
+                var s = File.ReadAllText(fileName);
+            }
+        }
     }
 }
