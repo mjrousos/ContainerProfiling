@@ -2,6 +2,7 @@ apiVersion: v1
 kind: Pod
 metadata:
   name: testapp
+  selfLink: /api/v1/namespaces/default/pods/testapp
 spec:
   # Containers must share process namespace 
   # for sidecar profiling scenarios
@@ -13,14 +14,21 @@ spec:
     # https://github.com/dotnet/diagnostics/issues/810
     - name: tmp
       emptyDir: {}
+
   containers:
     - name: testapp
       image: mjrousos/testapp:latest
+      ports:
+        - containerPort: 80
+      resources:
+        limits:
+          memory: 1Gi
+          cpu: "1"
+      
+      # This volume mount is only needed if profiling with dotnet-trace from a sidecar
       volumeMounts:
         - name: tmp
           mountPath: /tmp
-      ports:
-        - containerPort: 80
       # These env vars are only needed if profiling with PerfCollect
       env:
         - name: COMPlus_PerfMapEnabled
@@ -32,8 +40,13 @@ spec:
         # is run from the sidecar since the sidecar has crossgen.
         # - name: COMPlus_ZapDisable
         #  value: "1"
+
     - name: sidecar
       image: mjrousos/sidecar:latest
+      resources:
+        limits:
+          memory: 256Mi
+          cpu: "300m"
       stdin: true
       tty: true
       volumeMounts:
@@ -45,6 +58,6 @@ spec:
       # (as opposed to the sidecar) then this securityContext
       # needs to be copied to that container.
       securityContext:
-        privileged: true
         capabilities:
-          add: ["SYS_ADMIN"]
+          # SYS_ADMIN is needed for PerfCollect, SYS_PTRACE is needed for createdump
+          add: ["SYS_ADMIN", "SYS_PTRACE"]
