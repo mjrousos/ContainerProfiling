@@ -26,6 +26,7 @@ RUN ./perfcollect install
 RUN dotnet tool install --global dotnet-trace
 RUN dotnet tool install --global dotnet-counters
 RUN dotnet tool install --global dotnet-dump
+RUN dotnet tool install --global dotnet-gcdump
 
 
 ENTRYPOINT ["/bin/bash"]
